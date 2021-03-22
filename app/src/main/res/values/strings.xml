@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">StarWarsApp</string>
+    <string name="planets_title">Список планет</string>
+</resources>
