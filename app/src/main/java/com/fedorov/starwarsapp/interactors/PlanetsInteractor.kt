@@ -1,6 +1,7 @@
 package com.fedorov.starwarsapp.interactors
 
 import android.content.Context
+import android.os.Handler
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -8,7 +9,6 @@ import com.android.volley.toolbox.Volley
 import com.fedorov.starwarsapp.models.Planet
 import org.json.JSONException
 import org.json.JSONObject
-import java.security.AccessControlContext
 
 
 class PlanetsInteractor(private val context: Context)
@@ -25,42 +25,54 @@ class PlanetsInteractor(private val context: Context)
         var stringRequest = StringRequest(Request.Method.GET, url,
         Response.Listener
         {
-            try
+            val t = Thread(Runnable
             {
-                val json = JSONObject(it)
-                var planets = mutableListOf<Planet>()
-
-                if(json.has("results"))
+                try
                 {
-                    var jsonPlanets = json.getJSONArray("results")
-                    var index:Int=0;
-                    while (index < jsonPlanets.length())
+                    val json = JSONObject(it)
+                    var planets = mutableListOf<Planet>()
+
+                    if(json.has("results"))
                     {
-                        var jsonPlanet = jsonPlanets[index] as JSONObject
-
-                        var name:String? = null
-                        if(jsonPlanet.has("name"))
+                        var jsonPlanets = json.getJSONArray("results")
+                        var index:Int=0;
+                        while (index < jsonPlanets.length())
                         {
-                            name = jsonPlanet.getString("name")
-                        }
+                            var jsonPlanet = jsonPlanets[index] as JSONObject
 
-                        var url:String? = null
-                        if(jsonPlanet.has("url"))
-                        {
-                            url = jsonPlanet.getString("url")
-                        }
+                            var name:String? = null
+                            if(jsonPlanet.has("name"))
+                            {
+                                name = jsonPlanet.getString("name")
+                            }
 
-                        planets.add(Planet(name, url))
-                        index ++
+                            var url:String? = null
+                            if(jsonPlanet.has("url"))
+                            {
+                                url = jsonPlanet.getString("url")
+                            }
+
+                            planets.add(Planet(name, url))
+                            index ++
+                        }
                     }
-                }
+                    val mainHandler: Handler = Handler(context.mainLooper)
+                    mainHandler.post(Runnable
+                    {
+                        presenter.onSuccess(planets)
+                    })
 
-                presenter.onSuccess(planets)
-            }
-            catch (ex: JSONException)
-            {
-                presenter.onError(ex.localizedMessage)
-            }
+                }
+                catch (e: InterruptedException)
+                {
+                    val mainHandler: Handler = Handler(context.mainLooper)
+                    mainHandler.post(Runnable
+                    {
+                        presenter.onError(e.localizedMessage)
+                    })
+                }
+            })
+            t.start()
         },
         Response.ErrorListener
         {
